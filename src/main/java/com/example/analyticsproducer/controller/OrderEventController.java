@@ -19,8 +19,8 @@ public class OrderEventController {
     @Autowired
     private OrderEventProducer orderEventProducer;
     @RequestMapping(value="/order-event",method= RequestMethod.POST)
-    public ResponseEntity<Boolean> getAgentInfo(final @RequestBody OrderEvent orderEvent)  {
-       orderEventProducer.sendOrderEvent(orderEvent);
+    public ResponseEntity<Boolean> createOrder(final @RequestBody Integer orderCount)  {
+       orderEventProducer.sendOrderEvent(orderCount);
         return new ResponseEntity<>(true, HttpStatus.OK);
     }
 }
