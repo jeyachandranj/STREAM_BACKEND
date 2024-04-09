@@ -22,3 +22,5 @@ public class LineGraphResponse {
         this.orderSeries = orderSeries;
     }
 }
+
+

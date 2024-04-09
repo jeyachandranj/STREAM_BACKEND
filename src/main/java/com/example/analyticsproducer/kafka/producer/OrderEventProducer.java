@@ -3,6 +3,7 @@ package com.example.analyticsproducer.kafka.producer;
 import com.example.analyticsproducer.enums.EventTypeEnum;
 import com.example.analyticsproducer.events.OrderEvent;
 
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Random;
 import java.util.UUID;
@@ -28,7 +29,7 @@ public class OrderEventProducer {
         try {
             for (int i = 0; i < orderCount; i++) {
                 OrderEvent baseOrderEvent = getBaseOrderEvent();
-                Date lastEventTime = new Date();
+                Date lastEventTime = generateRandomTime();
                 for (EventTypeEnum eventType : EventTypeEnum.values()) {
                     if(eventType.equals(EventTypeEnum.CUSTOMER_REJECT)){
                         break;
@@ -65,6 +66,7 @@ public class OrderEventProducer {
                 return new Date(lastEventTime.getTime() + random.nextInt(500000) + 500000); // 10 to 20 minutes after
                                                                                             // customer order
             case DROP_UP_TO_CUSTOMER, CUSTOMER_REJECT:
+
                 return new Date(lastEventTime.getTime() + random.nextInt(1500000) + 500000); // 10 to 40 minutes after
                                                                                              // customer order
             default:
@@ -79,6 +81,27 @@ public class OrderEventProducer {
         orderEvent.setRestaurantId("Restaurant" + random.nextInt(50));
         orderEvent.setCustomerId("Customer" + random.nextInt(1000000));
         return orderEvent;
+    }
+
+    public static Date generateRandomTime() {
+        // Get current date
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(new Date());
+
+        // Generate random hour
+        Random random = new Random();
+        int randomHour = random.nextInt(24); // Generates a random integer between 0 and 23 (inclusive)
+
+        // Set random hour
+        calendar.set(Calendar.HOUR_OF_DAY, randomHour);
+
+        // Clear minutes, seconds, and milliseconds
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+
+        // Return the generated random time
+        return calendar.getTime();
     }
 
     public static boolean shouldRejectEvent(EventTypeEnum eventType, int i) {

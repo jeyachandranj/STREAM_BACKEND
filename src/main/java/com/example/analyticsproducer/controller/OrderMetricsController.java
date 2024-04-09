@@ -1,5 +1,6 @@
 package com.example.analyticsproducer.controller;
 
+import com.example.analyticsproducer.dto.EchartResponce;
 import com.example.analyticsproducer.dto.LineGraphResponse;
 import com.example.analyticsproducer.dto.OrderMetricsResponse;
 import com.example.analyticsproducer.service.OrderMetricsService;
@@ -38,5 +39,15 @@ public class OrderMetricsController {
         LineGraphResponse response = orderMetricsService.getLineGraph(
                 DateUtil.convertToDateFormate(startDate),DateUtil.convertToDateFormate(endDate));
         return new ResponseEntity<LineGraphResponse>(response, HttpStatus.OK);
+    }
+
+    @RequestMapping(value="/order-metrics/e-chart",method= RequestMethod.GET)
+    public ResponseEntity<EchartResponce> getEchart(@RequestParam("startDate") Long startDate,
+                                                          @RequestParam("endDate") Long endDate) {
+        // Parse the date strings into java.util.Date objects
+
+        EchartResponce response = orderMetricsService.getEchart(
+                DateUtil.convertToDateFormate(startDate),DateUtil.convertToDateFormate(endDate));
+        return new ResponseEntity<EchartResponce>(response, HttpStatus.OK);
     }
 }

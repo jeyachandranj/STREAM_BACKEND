@@ -3,12 +3,9 @@ package com.example.analyticsproducer.dto;
 public class OrderMetricsResponse {
 
     private Long totalOrder;
-    private Long totalRestaurant;
-
-    private Long totalDriver;
-    private Long totalCustomer;
     private Long successOrder;
     private Long failureOrder;
+    private String avgWaitTime;
 
     public Long getTotalOrder() {
         return totalOrder;
@@ -16,30 +13,6 @@ public class OrderMetricsResponse {
 
     public void setTotalOrder(Long totalOrder) {
         this.totalOrder = totalOrder;
-    }
-
-    public Long getTotalRestaurant() {
-        return totalRestaurant;
-    }
-
-    public void setTotalRestaurant(Long totalRestaurant) {
-        this.totalRestaurant = totalRestaurant;
-    }
-
-    public Long getTotalDriver() {
-        return totalDriver;
-    }
-
-    public void setTotalDriver(Long totalDriver) {
-        this.totalDriver = totalDriver;
-    }
-
-    public Long getTotalCustomer() {
-        return totalCustomer;
-    }
-
-    public void setTotalCustomer(Long totalCustomer) {
-        this.totalCustomer = totalCustomer;
     }
 
     public Long getSuccessOrder() {
@@ -56,5 +29,13 @@ public class OrderMetricsResponse {
 
     public void setFailureOrder(Long failureOrder) {
         this.failureOrder = failureOrder;
+    }
+
+    public String getAvgWaitTime() {
+        return avgWaitTime;
+    }
+
+    public void setAvgWaitTime(String avgWaitTime) {
+        this.avgWaitTime = avgWaitTime;
     }
 }

@@ -1,15 +1,16 @@
 package com.example.analyticsproducer.service;
 
+import com.example.analyticsproducer.dto.EchartResponce;
 import com.example.analyticsproducer.dto.LineGraphResponse;
 import com.example.analyticsproducer.dto.OrderMetricsResponse;
 import com.example.analyticsproducer.dto.Series;
-import com.example.analyticsproducer.repository.OrderMetricsRepository;
+import com.example.analyticsproducer.repository.EventMetricsRepository;
+import com.example.analyticsproducer.repository.OrderWaitTimeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,33 +19,29 @@ import java.util.Map;
 public class OrderMetricsService {
 
     @Autowired
-    private OrderMetricsRepository orderMetricsRepository;
+    private EventMetricsRepository eventMetricsRepository;
+    @Autowired
+    private OrderWaitTimeRepository orderWaitTimeRepository;
     public OrderMetricsResponse getOrderMetrics(String startDate, String endDate) {
-        List<Object[]> resultList = orderMetricsRepository.getTotalMetricsBetweenDates(startDate, endDate);
+        List<Object[]> resultList = eventMetricsRepository.getTotalMetricsBetweenDates(startDate, endDate);
         OrderMetricsResponse orderMetricsResponse = new OrderMetricsResponse();
+        Double averageWaitTimeInSeconds = orderWaitTimeRepository.calculateAverageWaitTimeInSeconds(startDate, endDate);
         if(ObjectUtils.isEmpty(resultList)) {
             orderMetricsResponse.setTotalOrder(0L);
-            orderMetricsResponse.setTotalRestaurant(0L);
-            orderMetricsResponse.setTotalDriver(0L);
-            orderMetricsResponse.setTotalCustomer(0L);
             orderMetricsResponse.setSuccessOrder(0L);
             orderMetricsResponse.setFailureOrder(0L);
             return orderMetricsResponse;
         }
         Object[] result = resultList.get(0);
         Long totalOrder = extractLongValue(result[0]);
-        Long totalRestaurant = extractLongValue(result[1]);
-        Long totalDriver = extractLongValue(result[2]);
-        Long totalCustomer = extractLongValue(result[3]);
-        Long successOrder = extractLongValue(result[4]);
-        Long failureOrder = extractLongValue(result[5]);
+        Long successOrder = extractLongValue(result[1]);
+        Long failureOrder = extractLongValue(result[2]);
+        String avgWaitTime =convertSecondsToTimeString(averageWaitTimeInSeconds);
 
         orderMetricsResponse.setTotalOrder(totalOrder);
-        orderMetricsResponse.setTotalRestaurant(totalRestaurant);
-        orderMetricsResponse.setTotalDriver(totalDriver);
-        orderMetricsResponse.setTotalCustomer(totalCustomer);
         orderMetricsResponse.setSuccessOrder(successOrder);
         orderMetricsResponse.setFailureOrder(failureOrder);
+        orderMetricsResponse.setAvgWaitTime(avgWaitTime);
         return orderMetricsResponse;
     }
 
@@ -59,7 +56,7 @@ public class OrderMetricsService {
     }
 
     public LineGraphResponse getLineGraph(String startDate, String endDate){
-        List<Object[]> resultList = orderMetricsRepository.getLineGraph(startDate, endDate);
+        List<Object[]> resultList = eventMetricsRepository.getLineGraph(startDate, endDate);
         // [
         //     [10,100,12,23,34],
         //     [11,33,34,33,33]
@@ -81,40 +78,72 @@ public class OrderMetricsService {
         for(Object[] result : resultList) {
             OrderMetricsResponse orderMetricsResponse = new OrderMetricsResponse();
             orderMetricsResponse.setTotalOrder(extractLongValue(result[1]));
-            orderMetricsResponse.setTotalDriver(extractLongValue(result[2]));
-            orderMetricsResponse.setTotalCustomer(extractLongValue(result[3]));
-            orderMetricsResponse.setTotalRestaurant(extractLongValue(result[4]));
+            orderMetricsResponse.setSuccessOrder(extractLongValue(result[2]));
+            orderMetricsResponse.setFailureOrder(extractLongValue(result[3]));
             hourMetricsMap.put(extractLongValue(result[0]),orderMetricsResponse);
         }
         Series successSeries = new Series("SUCCESS ORDER","#4caf50");
-        Series driverSeries = new Series("DRIVER","#2196f3");
-        Series customerSeries = new Series("CUSTOMER","#ffc107");
+        Series totalOrderSeries = new Series("TOTAL ORDER","#2196f3");
         Series failureSeries = new Series("FAILURE ORDER","#f44336");
 
         for(long i =0; i<=23; i=i+1){
             OrderMetricsResponse orderMetricsResponse = hourMetricsMap.get(i);
             if(ObjectUtils.isEmpty(orderMetricsResponse)){
                 successSeries.getData().add(0L);
-                driverSeries.getData().add(0L);
-                customerSeries.getData().add(0L);
+                totalOrderSeries.getData().add(0L);
                 failureSeries.getData().add(0L);
             } else {
-                successSeries.getData().add(orderMetricsResponse.getTotalOrder());
-                driverSeries.getData().add(orderMetricsResponse.getTotalDriver());
-                customerSeries.getData().add(orderMetricsResponse.getTotalCustomer());
-                failureSeries.getData().add(orderMetricsResponse.getTotalRestaurant());
+                successSeries.getData().add(orderMetricsResponse.getSuccessOrder());
+                totalOrderSeries.getData().add(orderMetricsResponse.getTotalOrder());
+                failureSeries.getData().add(orderMetricsResponse.getFailureOrder());
             }
         }
             LineGraphResponse lineGraphResponse = new LineGraphResponse();
             List<Series> userSeries = new  ArrayList<>();
-            userSeries.add(driverSeries);
-            userSeries.add(customerSeries);
+            userSeries.add(totalOrderSeries);
+            userSeries.add(successSeries);
             List<Series> orderSeries = new  ArrayList<>();
-            orderSeries.add(successSeries);
             orderSeries.add(failureSeries);
+            orderSeries.add(totalOrderSeries);
             lineGraphResponse.setUserSeries(userSeries);
             lineGraphResponse.setOrderSeries(orderSeries);
             return lineGraphResponse;
         }
-        
+
+
+    public EchartResponce getEchart(String s, String s1) {
+        Series Series = new Series("CUSTOMER WAIT TIME","#fff");
+        List<Long> data = new ArrayList<>();
+        List<Series> seriesList = new ArrayList<>();
+        data.add(orderWaitTimeRepository.countOrdersWithWaitTimeLessThan10Minutes(s,s1));
+        data.add(orderWaitTimeRepository.countOrdersWithWaitTimeBetween10And30Minutes(s,s1));
+        data.add(orderWaitTimeRepository.countOrdersWithWaitTimeBetween30And60Minutes(s,s1));
+        data.add(orderWaitTimeRepository.countOrdersWithWaitTimeMoreThan60Minutes(s,s1));
+        Series.setData(data);
+        seriesList.add(Series);
+        EchartResponce echartResponce = new EchartResponce();
+        echartResponce.setSeries(seriesList);
+        return echartResponce;
     }
+
+    private String convertSecondsToTimeString(Double seconds) {
+        if (seconds == null) {
+            return "0s";
+        }
+        long hours = (long) (seconds / 3600);
+        long minutes = (long) ((seconds % 3600) / 60);
+        long remainingSeconds = (long) (seconds % 60);
+
+        StringBuilder stringBuilder = new StringBuilder();
+
+        if (hours > 0) {
+            stringBuilder.append(hours).append(" hr ");
+        }
+        if (minutes > 0 || hours > 0) {
+            stringBuilder.append(minutes).append(" min ");
+        }
+        stringBuilder.append(remainingSeconds).append(" s");
+
+        return stringBuilder.toString();
+    }
+}
